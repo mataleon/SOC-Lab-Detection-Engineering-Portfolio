@@ -1,0 +1,54 @@
+// =============================================
+// RULE: Registry Run Key Persistence Detection
+// =============================================
+// Description: Detects modifications to Windows
+// registry autorun keys commonly used by attackers
+// to establish persistence across system reboots.
+//
+// Author:      Leon Kiyonga Ddungu
+// Date:        June 2026
+// Platform:    Microsoft Sentinel
+// Log Source:  Sysmon Event ID 13 (Registry Value Set)
+//
+// MITRE ATT&CK:
+//   Tactic:    Persistence
+//   Technique: T1547.001 - Boot/Logon Autostart:
+//              Registry Run Keys / Startup Folder
+//
+// Severity:    Medium
+//
+// Validated:   Yes - tested in home SOC lab
+//              reg add HKCU\...\Run /v TestPersistence
+//              Event ID 13 confirmed in Sentinel
+// =============================================
+
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+| where EventID == 13
+| extend TargetObject = extract(
+    @"TargetObject: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend Details = extract(
+    @"Details: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend User = extract(
+    @"User: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend Image = extract(
+    @"Image: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| where TargetObject has_any (
+    "\\CurrentVersion\\Run",
+    "\\CurrentVersion\\RunOnce",
+    "\\CurrentVersion\\RunServices",
+    "\\CurrentVersion\\RunOnceEx",
+    "\\Winlogon\\Shell",
+    "\\Winlogon\\Userinit")
+| project
+    TimeGenerated,
+    Computer,
+    User,
+    Image,
+    TargetObject,
+    Details
+| order by TimeGenerated desc
