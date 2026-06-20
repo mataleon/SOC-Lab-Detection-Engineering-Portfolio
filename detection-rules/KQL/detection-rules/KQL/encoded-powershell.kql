@@ -1,0 +1,69 @@
+// =============================================
+// RULE: Encoded PowerShell Execution Detection
+// =============================================
+// Description: Detects PowerShell execution with
+// Base64 encoded commands. Commonly used by
+// attackers to obfuscate malicious payloads and
+// bypass basic script content inspection.
+//
+// Author:      Leon Kiyonga Ddungu
+// Date:        June 2026
+// Platform:    Microsoft Sentinel
+// Log Source:  Sysmon Event ID 1 (Process Create)
+//
+// MITRE ATT&CK:
+//   Tactic:    Execution, Defense Evasion
+//   Technique: T1059.001 - PowerShell
+//              T1027 - Obfuscated Files or Information
+//
+// Severity:    High
+//
+// Requirements: Sysmon v15 with SwiftOnSecurity
+//               config deployed on endpoint
+//               AMA + DCR collecting Sysmon channel
+//
+// False Positives:
+//   - Legitimate automation scripts
+//   - VS Code PowerShell extension
+//   - SCCM software deployment tasks
+//   Filter these using ParentImage exclusions
+// =============================================
+
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+| where EventID == 1
+| extend CommandLine = extract(
+    @"CommandLine: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend ParentImage = extract(
+    @"ParentImage: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend Image = extract(
+    @"\nImage: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend User = extract(
+    @"User: (.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| extend Hash = extract(
+    @"SHA256=([A-F0-9]+)",
+    1, RenderedDescription)
+| extend ProcessId = extract(
+    @"ProcessId: (\d+)",
+    1, RenderedDescription)
+| where CommandLine has_any (
+    "-enc ",
+    "-EncodedCommand ",
+    "-e ",
+    "-ec ")
+| where CommandLine contains "powershell"
+| where ParentImage !has "Code.exe"
+| project
+    TimeGenerated,
+    Computer,
+    User,
+    Image,
+    CommandLine,
+    ParentImage,
+    Hash,
+    ProcessId
+| order by TimeGenerated desc
