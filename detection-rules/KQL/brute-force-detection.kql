@@ -1,0 +1,73 @@
+// =============================================
+// RULE: Brute Force Attack Detection
+// =============================================
+// Description: Detects brute force credential
+// attacks against Windows systems by identifying
+// 5 or more failed logon attempts from the same
+// source IP within a 5-minute window.
+//
+// Author:      Leon Kiyonga Ddungu
+// Date:        June 2026
+// Platform:    Microsoft Sentinel
+// Log Source:  Windows Security Events (Event ID 4625)
+//
+// MITRE ATT&CK:
+//   Tactic:    Credential Access
+//   Technique: T1110 - Brute Force
+//
+// Severity:    High
+//
+// Validated:   Yes - tested against real netexec
+//              brute force simulation in home SOC lab
+//              9 Event ID 4625s detected in 60 seconds
+//              Source: 192.168.254.131 (Kali Linux)
+//              Target: SOC-DC01 Active Directory
+// =============================================
+
+Event
+| where EventID == 4625
+| where TimeGenerated > ago(5m)
+| extend SourceIP = extract(
+    @"Source Network Address:\s+(\S+)",
+    1, RenderedDescription)
+| extend TargetAccount = extract(
+    @"Account Name:\s+(\S+)\s+Account Domain",
+    1, RenderedDescription)
+| extend LogonType = extract(
+    @"Logon Type:\s+(\d+)",
+    1, RenderedDescription)
+| extend FailureReason = extract(
+    @"Failure Reason:\s+(.+?)(?:\r|\n)",
+    1, RenderedDescription)
+| where SourceIP != "-"
+| where SourceIP != ""
+| where SourceIP != "127.0.0.1"
+| summarize
+    FailedAttempts = count(),
+    FirstSeen = min(TimeGenerated),
+    LastSeen = max(TimeGenerated),
+    TargetAccounts = make_set(TargetAccount),
+    FailureReasons = make_set(FailureReason)
+    by SourceIP, Computer
+| where FailedAttempts >= 5
+| extend
+    AttackDuration = datetime_diff(
+        'second', LastSeen, FirstSeen),
+    AlertDetail = strcat(
+        "BRUTE FORCE DETECTED: ",
+        FailedAttempts,
+        " failed logons from ",
+        SourceIP,
+        " against ",
+        Computer)
+| project
+    FirstSeen,
+    LastSeen,
+    AttackDuration,
+    Computer,
+    SourceIP,
+    FailedAttempts,
+    TargetAccounts,
+    FailureReasons,
+    AlertDetail
+| order by FailedAttempts desc
