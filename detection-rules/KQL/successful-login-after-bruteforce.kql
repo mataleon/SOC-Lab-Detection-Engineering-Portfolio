@@ -1,0 +1,42 @@
+// =============================================
+// RULE: Successful Login After Brute Force
+// =============================================
+// Description: Correlates 5+ failed logon attempts
+// (Event ID 4625) from the same source IP with a
+// subsequent successful logon (Event ID 4624) from
+// that same IP within the same time window. This
+// detects confirmed credential compromise — not
+// just an attempted brute force, but one that
+// succeeded.
+//
+// Author:      Leon Kiyonga Ddungu
+// Date:        May 2026
+// Platform:    Microsoft Sentinel
+// Log Source:  SecurityEvent (Event ID 4625, 4624)
+//
+// MITRE ATT&CK:
+//   Tactic:    Initial Access, Credential Access
+//   Technique: T1110.001 - Password Guessing
+//
+// Severity:    High
+//
+// Validated:   Yes - fired in production lab
+//              Incident #295, 11 events correlated
+//              Confirmed successful authentication
+//              following brute force pattern
+//
+// Note: Entity mapping (IP, Account) added after
+// initial deployment — see RCA-002 for details
+// =============================================
+
+let FailedLogins = SecurityEvent
+| where EventID == 4625
+| where TimeGenerated > ago(1h)
+| summarize FailCount = count() by IpAddress, TargetAccount;
+SecurityEvent
+| where EventID == 4624
+| where TimeGenerated > ago(1h)
+| join kind=inner FailedLogins on IpAddress
+| where FailCount >= 5
+| project TimeGenerated, IpAddress, TargetAccount, FailCount
+| sort by FailCount desc
