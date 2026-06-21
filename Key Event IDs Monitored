@@ -1,0 +1,31 @@
+## DNS Telemetry Validation
+
+Sysmon Event ID 22 (DNS Query) is confirmed
+flowing into Microsoft Sentinel from SOC-DC01,
+validated via KQL query extracting QueryName,
+Image, and User fields from the raw event
+description.
+
+```kql
+Event
+| where Source == "Microsoft-Windows-Sysmon"
+| where EventID == 22
+| extend QueryName = extract(@"QueryName: (\S+)", 1, RenderedDescription)
+| extend Image = extract(@"Image: (.+?)(?:\r|\n| User:)", 1, RenderedDescription)
+| extend User = extract(@"User: (.+?)(?:\r|\n|$)", 1, RenderedDescription)
+| project TimeGenerated, QueryName, Image, User
+| order by TimeGenerated desc
+```
+
+![Sentinel DNS Query Results](screenshots/sentinel-dns-query-results.png)
+
+*DNS query telemetry confirmed in Sentinel — 
+showing QueryName, the process that made the 
+query, and the user context. This data source 
+is critical for detecting C2 beaconing and DNS 
+tunneling, since most malware uses DNS to 
+communicate with attacker infrastructure.*
+
+ad-account-locked.png
+
+---
