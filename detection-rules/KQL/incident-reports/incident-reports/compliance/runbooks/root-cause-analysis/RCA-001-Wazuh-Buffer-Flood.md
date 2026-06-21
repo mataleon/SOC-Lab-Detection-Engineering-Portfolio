@@ -54,11 +54,10 @@ Agent buffer is flooded: Producing too many events.
 2026/06/13 01:29:07 wazuh-agent: WARNING:
 
 Target agent message queue is full (1024).
+<img width="1917" height="1010" alt="wazuh buffer warning" src="https://github.com/user-attachments/assets/1ef7cf12-2e15-4407-bf86-cd393d40de61" />
+
 
 Log lines may be lost.
-
-
----
 
 ## Root Cause Analysis
 
