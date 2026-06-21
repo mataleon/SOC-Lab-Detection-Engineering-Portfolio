@@ -26,6 +26,6 @@ is critical for detecting C2 beaconing and DNS
 tunneling, since most malware uses DNS to 
 communicate with attacker infrastructure.*
 
-ad-account-locked.png
+
 
 ---
