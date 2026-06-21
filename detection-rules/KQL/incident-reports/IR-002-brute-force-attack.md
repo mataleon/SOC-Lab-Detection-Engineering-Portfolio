@@ -1,3 +1,4 @@
+<img width="1596" height="868" alt="event 4625" src="https://github.com/user-attachments/assets/e203e168-3a5c-438f-9b32-04716c98ad57" />
 # IR-002 — Brute Force Attack Against Active Directory
 
 | Field | Value |
@@ -45,3 +46,6 @@ Sentinel within 60 seconds of the first attempt.
 ---
 
 ## Technical Details
+
+<img width="1596" height="868" alt="event 4625" src="https://github.com/user-attachments/assets/16e1cd64-371f-4dd7-b55e-86190e7a9503" />
+
